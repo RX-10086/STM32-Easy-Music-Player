@@ -1,0 +1,360 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 THUMB
+    2 00000000                 REQUIRE8
+    3 00000000                 PRESERVE8
+    4 00000000         
+    5 00000000                 EXPORT           Delay_Init
+    6 00000000                 EXPORT           Delay_Ms
+    7 00000000                 EXPORT           Delay_Us
+    8 00000000         
+    9 00000000                 IMPORT           SystemCoreClock [DATA]
+   10 00000000         
+   11 00000000         ;*******************************
+   12 00000000         ;功  能：延时初始化函数
+   13 00000000         ;参  数：无
+   14 00000000         ;返回值：无
+   15 00000000         ;******************************
+   16 00000000         
+   17 00000000                 AREA             ||i.Delay_Init||, CODE, READONL
+Y, ALIGN=2
+   18 00000000         
+   19 00000000         |L0.48|
+   20 00000000 00000000        DCD              SystemCoreClock
+   21 00000004         |L0.52|
+   22 00000004 007A1200        DCD              0x007a1200
+   23 00000008         |US|
+   24 00000008 00000000        DCD              fam_nus
+   25 0000000C         |MS|
+   26 0000000C 00000000        DCD              fam_nms
+   27 00000010         
+   28 00000010         Delay_Init
+                               PROC
+   29 00000010 2000            MOVS             r0,#0
+   30 00000012 F04F 21E0       MOV              r1,#0xe000e000 ; SCS_BASE
+   31 00000016 6108            STR              r0,[r1,#0x10] ; SysTick->CTRL =
+                                                             0x0
+   32 00000018 F85F 001C       LDR              r0,|L0.48|
+   33 0000001C 6800            LDR              r0,[r0,#0]  ; SystemCoreClock
+   34 0000001E F85F 101C       LDR              r1,|L0.52|
+   35 00000022 FBB0 F0F1       UDIV             r0,r0,r1
+   36 00000026 F85F 1020       LDR              r1,|US|
+   37 0000002A 6008            STR              r0,[r1,#0]  ; fam_nus = SystemC
+                                                            oreClock/8000000
+   38 0000002C 4608            MOV              r0,r1
+   39 0000002E 6800            LDR              r0,[r0,#0]  ; fam_nus
+   40 00000030 F44F 717A       MOV              r1,#0x3e8
+   41 00000034 4348            MULS             r0,r1,r0
+   42 00000036 F85F 102C       LDR              r1,|MS|
+   43 0000003A 6008            STR              r0,[r1,#0]  ; fam_nms = am_nus*
+                                                            1000
+   44 0000003C 2000            MOVS             r0,#0
+   45 0000003E F04F 21E0       MOV              r1,#0xe000e000
+   46 00000042 6188            STR              r0,[r1,#0x18] ; SysTick->VAL = 
+                                                            0x00
+   47 00000044 4770            BX               lr
+   48 00000046                 ENDP
+   49 00000046         
+   50 00000046         ;*******************************
+   51 00000046         ;功  能：微秒延时
+   52 00000046         ;参  数：ctr  微秒
+   53 00000046         ;返回值：无
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   54 00000046         ;********************************
+   55 00000046                 AREA             ||i.Delay_Us||, CODE, READONLY,
+ ALIGN=2
+   56 00000000         
+   57 00000000         ;void Delay_Init(void)
+   58 00000000         Delay_Us
+                               PROC
+   59 00000000 4601            MOV              r1,r0
+   60 00000002 2000            MOVS             r0,#0
+   61 00000004 F85F 2004       LDR              r2,|US|
+   62 00000008 6812            LDR              r2,[r2,#0]  ; fam_nus
+   63 0000000A 434A            MULS             r2,r1,r2
+   64 0000000C F04F 23E0       MOV              r3,#0xe000e000
+   65 00000010 615A            STR              r2,[r3,#0x14] ; SysTick->LODA =
+                                                             fam_nus*ctr  
+   66 00000012 2200            MOVS             r2,#0
+   67 00000014 619A            STR              r2,[r3,#0x18] 
+                                                            ; SysTick->VAL = 0
+   68 00000016 461A            MOV              r2,r3
+   69 00000018 6912            LDR              r2,[r2,#0x10] ; Tick_Flag = Sys
+                                                            Tick->CTRL
+   70 0000001A F042 0201       ORR              r2,r2,#1
+   71 0000001E 611A            STR              r2,[r3,#0x10] ; SysTick->CTRL |
+                                                            = 0x01
+   72 00000020 BF00            NOP
+   73 00000022         |us_do|
+   74 00000022 F04F 22E0       MOV              r2,#0xe000e000
+   75 00000026 6910            LDR              r0,[r2,#0x10]
+   76 00000028 F400 3280       AND              r2,r0,#0x10000
+   77 0000002C B91A            CBNZ             r2,|us_while|
+   78 0000002E F000 0201       AND              r2,r0,#1
+   79 00000032 2A00            CMP              r2,#0
+   80 00000034 D1F5            BNE              |us_do|
+   81 00000036         |us_while|
+   82 00000036 2200            MOVS             r2,#0
+   83 00000038 F04F 23E0       MOV              r3,#0xe000e000
+   84 0000003C 611A            STR              r2,[r3,#0x10] ; SysTick->CTRL |
+                                                            = 0x00
+   85 0000003E 4770            BX               lr
+   86 00000040                 ENDP
+   87 00000040         
+   88 00000040         ;*******************************
+   89 00000040         ;功  能：毫秒延时
+   90 00000040         ;参  数：ctr  毫秒
+   91 00000040         ;返回值：无
+   92 00000040         ;*******************************
+   93 00000040                 AREA             ||i.Delay_Ms||, CODE, READONLY,
+ ALIGN=2
+   94 00000000         
+   95 00000000         ;void Delay_Us(uint16_t ctr)
+   96 00000000         Delay_Ms
+                               PROC
+   97 00000000 4601            MOV              r1,r0
+   98 00000002 2000            MOVS             r0,#0
+   99 00000004 F85F 2004       LDR              r2,|MS|
+  100 00000008 6812            LDR              r2,[r2,#0]  ; fam_nms
+  101 0000000A 434A            MULS             r2,r1,r2
+  102 0000000C F04F 23E0       MOV              r3,#0xe000e000
+  103 00000010 615A            STR              r2,[r3,#0x14] ; SysTick->LODA =
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                                                             fam_nms*ctr 
+  104 00000012 2200            MOVS             r2,#0
+  105 00000014 619A            STR              r2,[r3,#0x18] 
+                                                            ; SysTick->VAL = 0
+  106 00000016 2201            MOVS             r2,#1
+  107 00000018 611A            STR              r2,[r3,#0x10] ; SysTick->CTRL |
+                                                            = 0x01
+  108 0000001A BF00            NOP
+  109 0000001C         |ms_do|
+  110 0000001C F04F 22E0       MOV              r2,#0xe000e000
+  111 00000020 6910            LDR              r0,[r2,#0x10]
+  112 00000022 F400 3280       AND              r2,r0,#0x10000
+  113 00000026 B91A            CBNZ             r2,|ms_while|
+  114 00000028 F000 0201       AND              r2,r0,#1
+  115 0000002C 2A00            CMP              r2,#0
+  116 0000002E D1F5            BNE              |ms_do|
+  117 00000030         |ms_while|
+  118 00000030 2200            MOVS             r2,#0
+  119 00000032 F04F 23E0       MOV              r3,#0xe000e000
+  120 00000036 611A            STR              r2,[r3,#0x10]
+  121 00000038 4770            BX               lr
+  122 0000003A                 ENDP
+  123 0000003A         
+  124 0000003A                 AREA             ||.data||, DATA, ALIGN=2
+  125 00000000         
+  126 00000000         fam_nus
+  127 00000000 00000000        DCD              0x00000000
+  128 00000004         fam_nms
+  129 00000004 00000000        DCD              0x00000000
+  130 00000008         
+  131 00000008                 KEEP             fam_nus
+  132 00000008                 KEEP             fam_nms
+  133 00000008         
+  134 00000008                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp.sp --apcs=
+interwork --depend=.\objects\delay.d -o.\objects\delay.o -I..\hellostm32 -I.\RT
+E\_DAZUOYE -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include -IC:\Keil_v5\ARM
+\PACK\Keil\STM32F4xx_DFP\2.15.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include --pre
+define="__UVISION_VERSION SETA 538" --predefine="_RTE_ SETA 1" --predefine="STM
+32F407xx SETA 1" --predefine="_RTE_ SETA 1" --list=.\listings\delay.lst delay.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+Delay_Init 00000010
+
+Symbol: Delay_Init
+   Definitions
+      At line 28 in file delay.s
+   Uses
+      At line 5 in file delay.s
+Comment: Delay_Init used once
+L0.48 00000000
+
+Symbol: L0.48
+   Definitions
+      At line 19 in file delay.s
+   Uses
+      At line 32 in file delay.s
+Comment: L0.48 used once
+L0.52 00000004
+
+Symbol: L0.52
+   Definitions
+      At line 21 in file delay.s
+   Uses
+      At line 34 in file delay.s
+Comment: L0.52 used once
+MS 0000000C
+
+Symbol: MS
+   Definitions
+      At line 25 in file delay.s
+   Uses
+      At line 42 in file delay.s
+      At line 99 in file delay.s
+
+US 00000008
+
+Symbol: US
+   Definitions
+      At line 23 in file delay.s
+   Uses
+      At line 36 in file delay.s
+      At line 61 in file delay.s
+
+|i.Delay_Init| 00000000
+
+Symbol: |i.Delay_Init|
+   Definitions
+      At line 17 in file delay.s
+   Uses
+      None
+Comment: |i.Delay_Init| unused
+6 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+Delay_Us 00000000
+
+Symbol: Delay_Us
+   Definitions
+      At line 58 in file delay.s
+   Uses
+      At line 7 in file delay.s
+Comment: Delay_Us used once
+us_do 00000022
+
+Symbol: us_do
+   Definitions
+      At line 73 in file delay.s
+   Uses
+      At line 80 in file delay.s
+Comment: us_do used once
+us_while 00000036
+
+Symbol: us_while
+   Definitions
+      At line 81 in file delay.s
+   Uses
+      At line 77 in file delay.s
+Comment: us_while used once
+|i.Delay_Us| 00000000
+
+Symbol: |i.Delay_Us|
+   Definitions
+      At line 55 in file delay.s
+   Uses
+      None
+Comment: |i.Delay_Us| unused
+4 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+Delay_Ms 00000000
+
+Symbol: Delay_Ms
+   Definitions
+      At line 96 in file delay.s
+   Uses
+      At line 6 in file delay.s
+Comment: Delay_Ms used once
+ms_do 0000001C
+
+Symbol: ms_do
+   Definitions
+      At line 109 in file delay.s
+   Uses
+      At line 116 in file delay.s
+Comment: ms_do used once
+ms_while 00000030
+
+Symbol: ms_while
+   Definitions
+      At line 117 in file delay.s
+   Uses
+      At line 113 in file delay.s
+Comment: ms_while used once
+|i.Delay_Ms| 00000000
+
+Symbol: |i.Delay_Ms|
+   Definitions
+      At line 93 in file delay.s
+   Uses
+      None
+Comment: |i.Delay_Ms| unused
+4 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+fam_nms 00000004
+
+Symbol: fam_nms
+   Definitions
+      At line 128 in file delay.s
+   Uses
+      At line 26 in file delay.s
+      At line 132 in file delay.s
+
+fam_nus 00000000
+
+Symbol: fam_nus
+   Definitions
+      At line 126 in file delay.s
+   Uses
+      At line 24 in file delay.s
+      At line 131 in file delay.s
+
+|.data| 00000000
+
+Symbol: |.data|
+   Definitions
+      At line 124 in file delay.s
+   Uses
+      None
+Comment: |.data| unused
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+SystemCoreClock 00000000
+
+Symbol: SystemCoreClock
+   Definitions
+      At line 9 in file delay.s
+   Uses
+      At line 20 in file delay.s
+Comment: SystemCoreClock used once
+1 symbol
+352 symbols in table

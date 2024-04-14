@@ -1,0 +1,536 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000 40023800 
+                       RCC_BASE
+                               EQU              0x40023800
+    2 00000000 40023830 
+                       RCC_AHB1ENR
+                               EQU              (RCC_BASE+0x30)
+    3 00000000 00000030 
+                       RCC_AHB1Periph_GPIOE_GPIOF
+                               EQU              0x00000030
+    4 00000000         ;0x00000020
+    5 00000000 40021400 
+                       GPIOF   EQU              0x40021400
+    6 00000000 40021418 
+                       GPIOF_BSRR
+                               EQU              (GPIOF+0x18) ;端口置位/复位    
+                                                            
+    7 00000000 40021400 
+                       GPIOF_MODER
+                               EQU              (GPIOF+0x00) ;工作模式
+    8 00000000 40021404 
+                       GPIOF_OTYPER
+                               EQU              (GPIOF+0x04) ;输出类型
+    9 00000000 40021408 
+                       GPIOF_OSPEEDR
+                               EQU              (GPIOF+0x08) ;输出速度 
+   10 00000000 40021414 
+                       GPIOF_ODR
+                               EQU              (GPIOF+0x14) ;输出
+   11 00000000 00000700 
+                       LED_OFF EQU              (0x00000700)
+   12 00000000         
+   13 00000000 40021000 
+                       GPIOE   EQU              0x40021000
+   14 00000000 40021018 
+                       GPIOE_BSRR
+                               EQU              (GPIOE+0x18)
+   15 00000000 40021000 
+                       GPIOE_MODER
+                               EQU              (GPIOE+0x00)
+   16 00000000 40021008 
+                       GPIOE_OSPEEDR
+                               EQU              (GPIOE+0x08)
+   17 00000000 40021010 
+                       GPIOE_IDR
+                               EQU              (GPIOE+0x10) ;输入
+   18 00000000 4002100C 
+                       GPIOE_PUPDR
+                               EQU              (GPIOE+0x0c) ;上拉/下拉
+   19 00000000         
+   20 00000000         
+   21 00000000                 IMPORT           Delay_Init  ;延时初始化,无参数
+   22 00000000                 IMPORT           Delay_Ms    ;毫秒延时,参数在R0
+   23 00000000                 IMPORT           Delay_Us    ;微秒延时,参数在R0
+   24 00000000                 EXPORT           GPIO_INIT   ;GPIO初始化
+   25 00000000                 EXPORT           GPIOF_8_ON
+   26 00000000                 EXPORT           GPIOF_9_ON
+   27 00000000                 EXPORT           GPIOF_10_ON
+   28 00000000                 EXPORT           GPIOF_OFF
+   29 00000000                 EXPORT           GPIOE_READ  ;读取PE3的电平,结果
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                                                            返回R0
+   30 00000000         
+   31 00000000         
+   32 00000000                 AREA             ||i.GPIO_INIT||, CODE, READONLY
+, ALIGN=2
+   33 00000000         
+   34 00000000         GPIO_INIT
+                               PROC
+   35 00000000         ;GPIOE GPIOF时钟使能
+   36 00000000 4913            LDR              R1,=RCC_AHB1ENR
+   37 00000002 6808            LDR              R0,[R1]
+   38 00000004 F04F 0230       LDR              R2,=RCC_AHB1Periph_GPIOE_GPIOF
+   39 00000008 EA40 0002       ORR              R0,R2
+   40 0000000C 6008            STR              R0,[R1]
+   41 0000000E         ;将PF8、9、10设置为推挽输出
+   42 0000000E 4A11            LDR              R2,=GPIOF_BSRR
+   43 00000010 F44F 60E0       LDR              R0,=LED_OFF
+   44 00000014 6010            STR              R0,[R2]
+   45 00000016 F44F 10A8       LDR              R0,=0x00150000
+   46 0000001A 490F            LDR              R1,=GPIOF_MODER
+   47 0000001C 6008            STR              R0,[R1]
+   48 0000001E F04F 0000       LDR              R0,=0x00000000
+   49 00000022 490E            LDR              R1,=GPIOF_OTYPER
+   50 00000024 6008            STR              R0,[R1]
+   51 00000026 F44F 107C       LDR              R0,=0x003f0000
+   52 0000002A 490D            LDR              R1,=GPIOF_OSPEEDR
+   53 0000002C 6008            STR              R0,[R1]
+   54 0000002E         ;GPIOF全部置低电平
+   55 0000002E F04F 30FF       LDR              R0,=0xFFFFFFFF
+   56 00000032 490C            LDR              R1,=GPIOF_ODR
+   57 00000034 6008            STR              R0,[R1]
+   58 00000036         
+   59 00000036 F04F 0000       LDR              R0,=0x00000000
+   60 0000003A 490B            LDR              R1,=GPIOE_MODER
+   61 0000003C 6008            STR              R0,[R1]
+   62 0000003E F44F 707C       LDR              R0,=0x000003f0
+   63 00000042 490A            LDR              R1,=GPIOE_OSPEEDR
+   64 00000044 6008            STR              R0,[R1]
+   65 00000046         ;PE2、3、4全部置为上拉输入
+   66 00000046 F44F 70A8       LDR              R0,=0x00000150
+   67 0000004A 4909            LDR              R1,=GPIOE_PUPDR
+   68 0000004C 6008            STR              R0,[R1]
+   69 0000004E         
+   70 0000004E 4770            BX               LR
+   71 00000050                 ENDP
+   72 00000050         
+   73 00000050 40023830 
+              40021418 
+              40021400 
+              40021404 
+              40021408 
+              40021414 
+              40021000 
+              40021008 
+              4002100C         AREA             ||i.GPIOF_8_ON||, CODE, READONL
+Y, ALIGN=2
+   74 00000000         
+   75 00000000         GPIOF_8_ON
+                               PROC
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   76 00000000         ;PF8输出高电平，其他GPIOF为低
+   77 00000000 F46F 7080       LDR              R0,=0xFFFFFEFF
+   78 00000004 4901            LDR              R1,=GPIOF_ODR
+   79 00000006 6008            STR              R0,[R1]
+   80 00000008 4770            BX               LR
+   81 0000000A                 ENDP
+   82 0000000A         
+   83 0000000A 00 00 40021414  AREA             ||i.GPIOF_9_ON||, CODE, READONL
+Y, ALIGN=2
+   84 00000000         
+   85 00000000         GPIOF_9_ON
+                               PROC
+   86 00000000         ;PF9输出高电平，其他GPIOF为低
+   87 00000000 F46F 7000       LDR              R0,=0xFFFFFDFF
+   88 00000004 4901            LDR              R1,=GPIOF_ODR
+   89 00000006 6008            STR              R0,[R1]
+   90 00000008 4770            BX               LR
+   91 0000000A                 ENDP
+   92 0000000A         
+   93 0000000A 00 00 40021414  AREA             ||i.GPIOF_10_ON||, CODE, READON
+LY, ALIGN=2
+   94 00000000         
+   95 00000000         GPIOF_10_ON
+                               PROC
+   96 00000000         ;PF10输出高电平，其他GPIOF为低
+   97 00000000 F46F 6080       LDR              R0,=0xFFFFFBFF
+   98 00000004 4901            LDR              R1,=GPIOF_ODR
+   99 00000006 6008            STR              R0,[R1]
+  100 00000008 4770            BX               LR
+  101 0000000A                 ENDP
+  102 0000000A         
+  103 0000000A 00 00 40021414  AREA             ||i.GPIOF_OFF||, CODE, READONLY
+, ALIGN=2
+  104 00000000         
+  105 00000000         GPIOF_OFF
+                               PROC
+  106 00000000         ;全部GPIOF接口为低
+  107 00000000 F04F 30FF       LDR              R0,=0xFFFFFFFF
+  108 00000004 4901            LDR              R1,=GPIOF_ODR
+  109 00000006 6008            STR              R0,[R1]
+  110 00000008 4770            BX               LR
+  111 0000000A                 ENDP
+  112 0000000A         
+  113 0000000A 00 00 40021414  AREA             ||i.GPIOE_READ||, CODE, READONL
+Y, ALIGN=2
+  114 00000000         
+  115 00000000         GPIOE_READ
+                               PROC
+  116 00000000         ;检测PE3输入是否低电平
+  117 00000000 4904            LDR              R1,=GPIOE_IDR
+  118 00000002 6808            LDR              R0, [R1]
+  119 00000004 EA4F 00D0       LSR              R0, R0, #3  ;寄存器位移
+  120 00000008 EA4F 70C0       LSL              R0, R0, #31
+  121 0000000C EA4F 70D0       LSR              R0, R0, #31
+  122 00000010 4770            BX               LR
+  123 00000012                 ENDP
+  124 00000012         
+  125 00000012                 END
+              00 00 40021010 
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp.sp --apcs=
+interwork --depend=.\objects\gpio.d -o.\objects\gpio.o -I..\hellostm32 -I.\RTE\
+_DAZUOYE -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include -IC:\Keil_v5\ARM\P
+ACK\Keil\STM32F4xx_DFP\2.15.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include --prede
+fine="__UVISION_VERSION SETA 538" --predefine="_RTE_ SETA 1" --predefine="STM32
+F407xx SETA 1" --predefine="_RTE_ SETA 1" --list=.\listings\gpio.lst gpio.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+GPIO_INIT 00000000
+
+Symbol: GPIO_INIT
+   Definitions
+      At line 34 in file gpio.s
+   Uses
+      At line 24 in file gpio.s
+Comment: GPIO_INIT used once
+|i.GPIO_INIT| 00000000
+
+Symbol: |i.GPIO_INIT|
+   Definitions
+      At line 32 in file gpio.s
+   Uses
+      None
+Comment: |i.GPIO_INIT| unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+GPIOF_8_ON 00000000
+
+Symbol: GPIOF_8_ON
+   Definitions
+      At line 75 in file gpio.s
+   Uses
+      At line 25 in file gpio.s
+Comment: GPIOF_8_ON used once
+|i.GPIOF_8_ON| 00000000
+
+Symbol: |i.GPIOF_8_ON|
+   Definitions
+      At line 73 in file gpio.s
+   Uses
+      None
+Comment: |i.GPIOF_8_ON| unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+GPIOF_9_ON 00000000
+
+Symbol: GPIOF_9_ON
+   Definitions
+      At line 85 in file gpio.s
+   Uses
+      At line 26 in file gpio.s
+Comment: GPIOF_9_ON used once
+|i.GPIOF_9_ON| 00000000
+
+Symbol: |i.GPIOF_9_ON|
+   Definitions
+      At line 83 in file gpio.s
+   Uses
+      None
+Comment: |i.GPIOF_9_ON| unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+GPIOF_10_ON 00000000
+
+Symbol: GPIOF_10_ON
+   Definitions
+      At line 95 in file gpio.s
+   Uses
+      At line 27 in file gpio.s
+Comment: GPIOF_10_ON used once
+|i.GPIOF_10_ON| 00000000
+
+Symbol: |i.GPIOF_10_ON|
+   Definitions
+      At line 93 in file gpio.s
+   Uses
+      None
+Comment: |i.GPIOF_10_ON| unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+GPIOF_OFF 00000000
+
+Symbol: GPIOF_OFF
+   Definitions
+      At line 105 in file gpio.s
+   Uses
+      At line 28 in file gpio.s
+Comment: GPIOF_OFF used once
+|i.GPIOF_OFF| 00000000
+
+Symbol: |i.GPIOF_OFF|
+   Definitions
+      At line 103 in file gpio.s
+   Uses
+      None
+Comment: |i.GPIOF_OFF| unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+GPIOE_READ 00000000
+
+Symbol: GPIOE_READ
+   Definitions
+      At line 115 in file gpio.s
+   Uses
+      At line 29 in file gpio.s
+Comment: GPIOE_READ used once
+|i.GPIOE_READ| 00000000
+
+Symbol: |i.GPIOE_READ|
+   Definitions
+      At line 113 in file gpio.s
+   Uses
+      None
+Comment: |i.GPIOE_READ| unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+GPIOE 40021000
+
+Symbol: GPIOE
+   Definitions
+      At line 13 in file gpio.s
+   Uses
+      At line 14 in file gpio.s
+      At line 15 in file gpio.s
+      At line 16 in file gpio.s
+      At line 17 in file gpio.s
+      At line 18 in file gpio.s
+
+GPIOE_BSRR 40021018
+
+Symbol: GPIOE_BSRR
+   Definitions
+      At line 14 in file gpio.s
+   Uses
+      None
+Comment: GPIOE_BSRR unused
+GPIOE_IDR 40021010
+
+Symbol: GPIOE_IDR
+   Definitions
+      At line 17 in file gpio.s
+   Uses
+      At line 117 in file gpio.s
+Comment: GPIOE_IDR used once
+GPIOE_MODER 40021000
+
+Symbol: GPIOE_MODER
+   Definitions
+      At line 15 in file gpio.s
+   Uses
+      At line 60 in file gpio.s
+Comment: GPIOE_MODER used once
+GPIOE_OSPEEDR 40021008
+
+Symbol: GPIOE_OSPEEDR
+   Definitions
+      At line 16 in file gpio.s
+   Uses
+      At line 63 in file gpio.s
+Comment: GPIOE_OSPEEDR used once
+GPIOE_PUPDR 4002100C
+
+Symbol: GPIOE_PUPDR
+   Definitions
+      At line 18 in file gpio.s
+   Uses
+      At line 67 in file gpio.s
+Comment: GPIOE_PUPDR used once
+GPIOF 40021400
+
+Symbol: GPIOF
+   Definitions
+      At line 5 in file gpio.s
+   Uses
+      At line 6 in file gpio.s
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Absolute symbols
+
+      At line 7 in file gpio.s
+      At line 8 in file gpio.s
+      At line 9 in file gpio.s
+      At line 10 in file gpio.s
+
+GPIOF_BSRR 40021418
+
+Symbol: GPIOF_BSRR
+   Definitions
+      At line 6 in file gpio.s
+   Uses
+      At line 42 in file gpio.s
+Comment: GPIOF_BSRR used once
+GPIOF_MODER 40021400
+
+Symbol: GPIOF_MODER
+   Definitions
+      At line 7 in file gpio.s
+   Uses
+      At line 46 in file gpio.s
+Comment: GPIOF_MODER used once
+GPIOF_ODR 40021414
+
+Symbol: GPIOF_ODR
+   Definitions
+      At line 10 in file gpio.s
+   Uses
+      At line 56 in file gpio.s
+      At line 78 in file gpio.s
+      At line 88 in file gpio.s
+      At line 98 in file gpio.s
+      At line 108 in file gpio.s
+
+GPIOF_OSPEEDR 40021408
+
+Symbol: GPIOF_OSPEEDR
+   Definitions
+      At line 9 in file gpio.s
+   Uses
+      At line 52 in file gpio.s
+Comment: GPIOF_OSPEEDR used once
+GPIOF_OTYPER 40021404
+
+Symbol: GPIOF_OTYPER
+   Definitions
+      At line 8 in file gpio.s
+   Uses
+      At line 49 in file gpio.s
+Comment: GPIOF_OTYPER used once
+LED_OFF 00000700
+
+Symbol: LED_OFF
+   Definitions
+      At line 11 in file gpio.s
+   Uses
+      At line 43 in file gpio.s
+Comment: LED_OFF used once
+RCC_AHB1ENR 40023830
+
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Absolute symbols
+
+Symbol: RCC_AHB1ENR
+   Definitions
+      At line 2 in file gpio.s
+   Uses
+      At line 36 in file gpio.s
+Comment: RCC_AHB1ENR used once
+RCC_AHB1Periph_GPIOE_GPIOF 00000030
+
+Symbol: RCC_AHB1Periph_GPIOE_GPIOF
+   Definitions
+      At line 3 in file gpio.s
+   Uses
+      At line 38 in file gpio.s
+Comment: RCC_AHB1Periph_GPIOE_GPIOF used once
+RCC_BASE 40023800
+
+Symbol: RCC_BASE
+   Definitions
+      At line 1 in file gpio.s
+   Uses
+      At line 2 in file gpio.s
+Comment: RCC_BASE used once
+16 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+Delay_Init 00000000
+
+Symbol: Delay_Init
+   Definitions
+      At line 21 in file gpio.s
+   Uses
+      None
+Comment: Delay_Init unused
+Delay_Ms 00000000
+
+Symbol: Delay_Ms
+   Definitions
+      At line 22 in file gpio.s
+   Uses
+      None
+Comment: Delay_Ms unused
+Delay_Us 00000000
+
+Symbol: Delay_Us
+   Definitions
+      At line 23 in file gpio.s
+   Uses
+      None
+Comment: Delay_Us unused
+3 symbols
+377 symbols in table
